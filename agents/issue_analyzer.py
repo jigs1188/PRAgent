@@ -33,7 +33,7 @@ def analyze_issue(state: dict) -> dict:
     # ── resolve owner/repo ──────────────────────────────────
     match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", repo_url)
     repo_name = match.group(1).rstrip("/") if match else repo_url
-    repo_name = repo_name.rstrip(".git")
+    repo_name = repo_name.removesuffix(".git")
 
     # ── resolve issue number from URL if needed ─────────────
     if issue_url and not issue_number:

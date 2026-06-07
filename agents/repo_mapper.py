@@ -29,7 +29,7 @@ def map_repository(state: dict) -> dict:
     # ── resolve repo name ───────────────────────────────────
     match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", repo_url)
     repo_name = match.group(1).rstrip("/") if match else repo_url
-    repo_name = repo_name.rstrip(".git")
+    repo_name = repo_name.removesuffix(".git")
 
     # ── clone ───────────────────────────────────────────────
     repo_path = clone_repo(repo_name)

@@ -1,247 +1,211 @@
 # Agentic AI Contributor for Open-Source Go Projects
 
-An **agentic AI system** that takes a GitHub issue from an approved Go repository, understands the codebase, plans and implements a fix, validates it with tests, and generates a PR-ready diff with title and body.
+This is an **agentic AI platform** that solves issues in open-source Go projects. It takes a GitHub issue URL, understands the codebase via AST parsing and semantic search, plans a fix, applies the code changes using search/replace patches, validates the changes by compiling and running tests, and finally generates a PR-ready diff with a title and description.
 
-Built with **LangGraph** for multi-agent orchestration and **Google Gemini** (free tier) as the default LLM.
+Built with **LangGraph** for multi-agent orchestration. The default LLM is **Google Gemini**, but it seamlessly supports **OpenAI** and **Anthropic**.
 
 ---
 
-## Architecture
+## 🏗️ Architecture: The 7-Node Agent Pipeline
 
-```
+This system is not a single prompt or thin wrapper. It uses a **directed graph with a conditional validation loop** (via LangGraph) to mimic how a human engineer works.
+
+```text
 GitHub Issue URL
        │
        ▼
 ┌──────────────────┐
-│  Issue Analyzer   │  ← Fetches issue + comments from GitHub API
+│ 1. Issue Analyzer │  ← Fetches issue + comments. Classifies intent & extracts keywords.
+└────────┬─────────┘     (Comments often hold more context than the issue body)
+         │
+         ▼
+┌──────────────────┐
+│ 2. Repo Mapper    │  ← Clones repo. Parses all .go files via tree-sitter AST.
+└────────┬─────────┘     Indexes signatures (functions, structs) into Pinecone.
+         │               *Caches by commit-hash to avoid re-parsing.*
+         ▼
+┌──────────────────┐
+│ 3. Context        │  ← Performs hybrid search: Semantic (Pinecone) + Lexical (grep).
+│    Retriever      │    Automatically discovers adjacent `*_test.go` files.
+└────────┬─────────┘     LLM ranks and selects the top 10 most relevant files.
+         │
+         ▼
+┌──────────────────┐
+│ 4. Planner        │  ← Generates a step-by-step fix plan specifying exact file paths.
 └────────┬─────────┘
          │
          ▼
 ┌──────────────────┐
-│  Repo Mapper      │  ← Clones repo, builds AST code map, indexes into Pinecone
+│ 5. Patch Gen      │  ← Emits SEARCH/REPLACE blocks. Does NOT hallucinate full files.
 └────────┬─────────┘
          │
          ▼
 ┌──────────────────┐
-│ Context Retriever │  ← Pinecone semantic search + grep + test discovery
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│    Planner        │  ← Step-by-step fix plan with exact file paths
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Patch Generator   │  ← Search/replace patches (NOT full-file rewrites)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│   Validator       │  ← go build + go vet + go test
+│ 6. Validator      │  ← Runs: go build → go vet → go test.
 └────────┬─────────┘
     ┌────┴────┐
-    │  Pass?  │──No (retries < 3)──→ back to Patch Generator
+    │  Pass?  │──No (retries < 3)──→ back to Patch Generator (with error logs)
     └────┬────┘
          │ Yes (or max retries)
          ▼
 ┌──────────────────┐
-│  PR Generator     │  ← PR title + body + unified diff
+│ 7. PR Generator   │  ← Reads unified diff. Writes PR Title and PR Body (Markdown).
 └──────────────────┘
 ```
 
-### Key Design Choices
+### Key Engineering Decisions
 
-| Feature | Implementation | Why |
-|---|---|---|
-| **Orchestration** | LangGraph StateGraph | Demonstrates real multi-agent workflow |
-| **Code understanding** | tree-sitter AST parsing | Accurate function/struct/interface extraction |
-| **Search** | Pinecone + keyword grep | Semantic + lexical search combined |
-| **Code editing** | Search/replace patches | Safer than full-file rewrites |
-| **Validation** | go build / vet / test loop | Real coding agents use repair loops |
-| **LLM** | Swappable (Gemini/OpenAI/Anthropic) | Change one variable to switch |
-| **Caching** | Commit-hash indexed | Avoids re-parsing unchanged repos |
+1. **Search/Replace Patches vs Full-File Rewrites**: Asking an LLM to rewrite a 2000-line Go file usually results in deleted functions or hallucinated imports. This system uses `SEARCH/REPLACE` blocks with fuzzy whitespace matching to ensure safe, localized edits.
+2. **Validation Repair Loop**: Real coding agents fail and retry. The conditional edge from `Validator` back to `Patch Generator` injects `go test` compiler/test errors directly into the LLM context so it can fix its own mistakes.
+3. **AST-Based Code Mapping**: Uses `tree-sitter-go` to build a precise map of functions, methods, and structs with line numbers. This is vastly superior to regex-based codebase scanning.
+4. **Hybrid Retrieval**: Combines semantic embeddings (Pinecone) for conceptual matches with keyword grep for exact token matches.
 
 ---
 
-## Prerequisites
+## 🚀 Setup Instructions for Evaluators
+
+### 1. Prerequisites
 
 - **Python 3.11+**
-- **Go 1.21+** (for running tests on the target repo)
-- **Git** (for cloning repositories)
-- A **Google AI Studio API key** (free): https://aistudio.google.com/apikey
-- A **Pinecone API key** (free tier): https://www.pinecone.io/
+- **Go 1.21+** (installed on the host machine to run validation tests)
+- **Git**
 
----
-
-## Setup
-
-### 1. Clone this repository
+### 2. Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/agentic-go-contributor.git
-cd agentic-go-contributor
-```
+git clone https://github.com/jigs1188/PRAgent.git
+cd PRAgent
 
-### 2. Create a virtual environment
-
-```bash
+# Create and activate a virtual environment
 python -m venv venv
+# On Windows: venv\Scripts\activate
+# On macOS/Linux: source venv/bin/activate
 
-# Windows
-venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment
+### 3. API Keys Configuration
 
+Copy the example environment file:
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your API keys:
+To run this, you will need **two things**: an LLM provider key, and a Pinecone vector DB key (free tier is fine).
+Edit `.env`:
 
 ```env
-GOOGLE_API_KEY=your_google_api_key
+# By default, the system uses Gemini for both LLM and Embeddings
+GOOGLE_API_KEY=your_gemini_api_key
+
+# Pinecone is required for the AST code map
 PINECONE_API_KEY=your_pinecone_api_key
 ```
 
----
-
-## Usage
-
-### Basic usage
-
-```bash
-python main.py --repo spf13/cobra --issue 123
-```
-
-### With a full issue URL
-
-```bash
-python main.py --repo spf13/cobra --issue https://github.com/spf13/cobra/issues/123
-```
-
-### Override the model (when hitting rate limits)
-
-```bash
-python main.py --repo spf13/cobra --issue 123 --model gemini-1.5-pro
-```
-
-### Switch LLM provider
-
-```bash
-python main.py --repo spf13/cobra --issue 123 --provider openai --model gpt-4o
-```
+*Note: The Pinecone index (`go-contributor` by default) will be created automatically if it doesn't exist.*
 
 ---
 
-## How to Change the Model
+## 🧠 Changing LLM Providers (OpenAI / Anthropic)
 
-The model name is a **single variable** in `config.py`:
+The system is provider-agnostic. You can easily test it using OpenAI instead of Gemini.
 
-```python
-MODEL_NAME = "gemini-2.0-flash"   # ← change this
-```
-
-Or set it via environment variable:
-
+**1. Install the provider package:**
 ```bash
-export MODEL_NAME=gemini-1.5-pro
+pip install langchain-openai
 ```
 
-Or pass it at runtime:
+**2. Add your key to `.env`:**
+```env
+OPENAI_API_KEY=sk-proj-...
+```
 
+**3. Run the CLI with flags:**
 ```bash
-python main.py --repo spf13/cobra --issue 123 --model gemini-1.5-flash
+python main.py --repo spf13/cobra --issue 1860 --provider openai --model gpt-4o
 ```
 
-### Supported providers
-
-| Provider | Install | Model examples |
-|---|---|---|
-| **Gemini** (default) | `pip install langchain-google-genai` | `gemini-2.0-flash`, `gemini-1.5-pro` |
-| **OpenAI** | `pip install langchain-openai` | `gpt-4o`, `gpt-4o-mini` |
-| **Anthropic** | `pip install langchain-anthropic` | `claude-sonnet-4-20250514`, `claude-3-5-haiku-20241022` |
+*(Alternatively, you can change the default `LLM_PROVIDER` and `MODEL_NAME` directly in `config.py`)*.
 
 ---
 
-## Output
+## 💻 Usage
 
-All outputs are saved to `output/issue-{N}/`:
+Run the agent via the CLI. You can provide the repository name and issue number:
 
+```bash
+python main.py --repo spf13/cobra --issue 1860
 ```
-output/issue-123/
-├── pr_title.txt      # PR title
-├── pr_body.md        # PR body (Problem/Solution/Changes/Tests)
-├── changes.diff      # Unified diff of all changes
-├── plan.md           # Agent's change plan
-└── agent_log.json    # Full execution log with timing
+
+Or you can pass the full URL:
+
+```bash
+python main.py --repo spf13/cobra --issue https://github.com/spf13/cobra/issues/1860
+```
+
+### Testing on your own repository
+You can test the agent on any public repository without modifying the code.
+1. Create a dummy issue on your repository (e.g., "Fix spelling mistake in README").
+2. Run the agent against it:
+```bash
+python main.py --repo your_github_username/your_repo_name --issue 1
 ```
 
 ---
 
-## Project Structure
+## 📁 Output Artifacts
 
+The agent does **not** push directly to GitHub (to avoid polluting open-source repositories during evaluation). Instead, all outputs are saved locally in the `output/issue-<NUMBER>/` directory.
+
+Example output from a successful run:
+
+```text
+output/issue-1860/
+├── changes.diff      # The unified git diff containing all code changes
+├── pr_title.txt      # The generated pull request title
+├── pr_body.md        # The generated PR description (Problem, Solution, Testing)
+├── plan.md           # The step-by-step execution plan the LLM followed
+└── agent_log.json    # Detailed execution trace, timings, and validation pass/fail status
 ```
-agentic-go-contributor/
-├── config.py                  # Model name variable + all settings
-├── main.py                    # CLI entry point
-├── requirements.txt           # Python dependencies
-├── .env.example               # Environment variable template
-│
-├── agents/
-│   ├── __init__.py            # get_llm() multi-provider factory
-│   ├── issue_analyzer.py      # Fetch issue + comments, classify
-│   ├── repo_mapper.py         # Clone, parse AST, index Pinecone
-│   ├── context_retriever.py   # Semantic + grep search, test discovery
-│   ├── planner.py             # Step-by-step change plan
-│   ├── patch_generator.py     # Search/replace patch generation
-│   ├── validator.py           # go build/vet/test runner
-│   └── pr_generator.py        # PR title + body generation
-│
-├── tools/
-│   ├── __init__.py
-│   ├── git_tool.py            # Git clone, branch, diff
-│   ├── code_search.py         # Directory tree, grep, file reader
-│   ├── go_parser.py           # tree-sitter Go parser + regex fallback
-│   └── test_runner.py         # go build/vet/test subprocess runner
-│
+
+You can take the `changes.diff` file and apply it directly via `git apply changes.diff` to test the code manually.
+
+---
+
+## 🛠️ Project Structure
+
+```text
+PRAgent/
+├── main.py                    # CLI entry point. Initializes LangGraph.
+├── config.py                  # Central configuration (Model definitions, limits).
+├── agents/                    # The LangGraph Node Implementations
+│   ├── issue_analyzer.py      
+│   ├── repo_mapper.py         
+│   ├── context_retriever.py   
+│   ├── planner.py             
+│   ├── patch_generator.py     
+│   ├── validator.py           
+│   └── pr_generator.py        
+├── tools/                     # Core utilities used by the agents
+│   ├── code_search.py         # Grep & AST context reader
+│   ├── git_tool.py            # Cloning and diff generation
+│   ├── go_parser.py           # Tree-sitter Go integration
+│   └── test_runner.py         # Subprocess wrappers for `go build / vet / test`
 ├── vectorstore/
-│   ├── __init__.py
-│   └── pinecone_store.py      # Pinecone vector store for code map
-│
+│   └── pinecone_store.py      # Pinecone hybrid search & caching logic
 ├── workflow/
-│   ├── __init__.py
-│   ├── state.py               # AgentState TypedDict
-│   └── graph.py               # LangGraph StateGraph definition
-│
-├── repos/                     # Cloned repositories (gitignored)
-├── .cache/                    # Index cache (gitignored)
-└── output/                    # Generated PR outputs
+│   ├── graph.py               # The LangGraph StateGraph topology
+│   └── state.py               # The typed dictionary defining AgentState
+└── README.md
 ```
 
 ---
 
-## Approved Repositories
+## 🎯 Target Repositories
 
-| Repository | Difficulty |
-|---|---|
-| `spf13/cobra` | ⭐ Easiest (recommended) |
-| `go-playground/validator` | ⭐⭐ Medium |
-| `gin-gonic/gin` | ⭐⭐⭐ Harder |
-| `golangci/golangci-lint` | ⭐⭐⭐⭐ Hardest |
-
----
-
-## License
-
-MIT
+This agent is designed to work with any Go repository, but has been specifically built with the following open-source projects in mind:
+- `spf13/cobra`
+- `go-playground/validator`
+- `gin-gonic/gin`
+- `golangci/golangci-lint`

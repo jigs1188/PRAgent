@@ -140,7 +140,7 @@ Return JSON:
 def _repo_name(url: str) -> str:
     m = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", url)
     name = m.group(1).rstrip("/") if m else url
-    return name.rstrip(".git")
+    return name.removesuffix(".git")
 
 
 def _extract_json(text: str) -> dict:
