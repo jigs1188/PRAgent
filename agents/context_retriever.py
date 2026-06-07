@@ -38,7 +38,6 @@ def retrieve_context(state: dict) -> dict:
     repo_summary = state.get("repo_summary", "")
     code_map = state.get("code_map", [])
 
-    # ── 1. Pinecone semantic search ─────────────────────────
     query = f"{issue_title} {' '.join(keywords)} {' '.join(components)}"
     store = CodeVectorStore()
     semantic_hits = store.search(query, repo_name, top_k=20)
@@ -48,24 +47,21 @@ def retrieve_context(state: dict) -> dict:
         if hit.get("file"):
             semantic_files.add(hit["file"])
 
-    # ── 2. Keyword grep ─────────────────────────────────────
     grep_files: set[str] = set()
     for kw in keywords[:5]:  # limit to avoid flooding
         results = search_files(repo_path, kw, max_results=15)
         for r in results:
             grep_files.add(r["file"])
 
-    # ── 3. Component-name grep ──────────────────────────────
     for comp in components[:3]:
         results = search_files(repo_path, comp, max_results=10)
         for r in results:
             grep_files.add(r["file"])
 
     # ── combine candidates ──────────────────────────────────
-    all_candidates = sorted(semantic_files | grep_files)
+            grep_files.add(r["file"])
 
-    # ── 4. Ask LLM to rank/select ──────────────────────────
-    prompt = f"""Issue: {issue_title}
+    all_candidates = sorted(semantic_files | grep_files)
 Keywords: {', '.join(keywords)}
 Components: {', '.join(components)}
 Repository summary: {repo_summary}
@@ -91,7 +87,6 @@ Return JSON:
     selected = _extract_json(resp.content)
     relevant_files = selected.get("relevant_files", all_candidates[:MAX_CONTEXT_FILES])
 
-    # ── 5. Read selected file contents ──────────────────────
     file_contents: dict[str, str] = {}
     for fpath in relevant_files:
         try:
@@ -99,7 +94,6 @@ Return JSON:
         except FileNotFoundError:
             continue
 
-    # ── 6. Discover related test files ──────────────────────
     all_tests = find_test_files(repo_path)
     related_tests: set[str] = set()
 
@@ -134,8 +128,6 @@ Return JSON:
         ],
     }
 
-
-# ────────────────────── helpers ─────────────────────────────
 
 def _repo_name(url: str) -> str:
     m = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", url)

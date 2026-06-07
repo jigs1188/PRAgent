@@ -48,7 +48,6 @@ def get_repo_structure(repo_path: str, max_depth: int = 4) -> str:
     return "\n".join(lines)
 
 
-# ─────────────────────────── grep search ────────────────────
 def search_files(
     repo_path: str,
     pattern: str,
@@ -83,7 +82,6 @@ def search_files(
     return results
 
 
-# ─────────────────────────── file reader ────────────────────
 def read_file(file_path: str) -> str:
     """Read and return file contents (UTF-8, lenient)."""
     with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
@@ -95,7 +93,6 @@ def read_file_in_repo(repo_path: str, relative_path: str) -> str:
     return read_file(os.path.join(repo_path, relative_path))
 
 
-# ─────────────────────────── find files ─────────────────────
 def find_files(
     repo_path: str,
     pattern: str = "*.go",
@@ -109,7 +106,6 @@ def find_test_files(repo_path: str) -> list[str]:
     return find_files(repo_path, "*_test.go")
 
 
-# ─────────────────────────── helpers ────────────────────────
 def _iter_files(repo_path: str, glob_pattern: str) -> Generator[str, None, None]:
     for root, dirs, files in os.walk(repo_path):
         dirs[:] = [d for d in dirs if d not in _SKIP_DIRS and not d.startswith(".")]

@@ -30,23 +30,19 @@ def analyze_issue(state: dict) -> dict:
     issue_number = state.get("issue_number")
     issue_url = state.get("issue_url", "")
 
-    # ── resolve owner/repo ──────────────────────────────────
     match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", repo_url)
     repo_name = match.group(1).rstrip("/") if match else repo_url
     repo_name = repo_name.removesuffix(".git")
 
-    # ── resolve issue number from URL if needed ─────────────
     if issue_url and not issue_number:
         m = re.search(r"/issues/(\d+)", issue_url)
         if m:
             issue_number = int(m.group(1))
 
-    # ── GitHub API headers ──────────────────────────────────
     headers = {"Accept": "application/vnd.github.v3+json"}
     if GITHUB_TOKEN:
         headers["Authorization"] = f"token {GITHUB_TOKEN}"
 
-    # ── fetch issue ─────────────────────────────────────────
     api = f"https://api.github.com/repos/{repo_name}/issues/{issue_number}"
     try:
         resp = requests.get(api, headers=headers, timeout=30)
@@ -75,7 +71,6 @@ def analyze_issue(state: dict) -> dict:
     issue_body = data.get("body", "") or ""
     labels = [lb["name"] for lb in data.get("labels", [])]
 
-    # ── fetch comments (often more valuable than the body) ──
     comments_url = f"{api}/comments"
     try:
         cresp = requests.get(comments_url, headers=headers, timeout=30)
@@ -89,7 +84,6 @@ def analyze_issue(state: dict) -> dict:
         body = c.get("body", "")
         issue_comments.append(f"@{user}: {body}")
 
-    # ── ask LLM to classify ────────────────────────────────
     prompt = f"""Analyze this GitHub issue from the **{repo_name}** repository.
 
 ## Issue #{issue_number}: {issue_title}
@@ -118,7 +112,6 @@ Return JSON:
         HumanMessage(content=prompt),
     ])
 
-    # ── parse structured output ─────────────────────────────
     analysis = _extract_json(response.content)
 
     return {
@@ -135,11 +128,8 @@ Return JSON:
     }
 
 
-# ────────────────────── helpers ─────────────────────────────
-
 def _extract_json(text: str) -> dict:
     """Best-effort JSON extraction from LLM output."""
-    # Strip markdown code fences
     text = re.sub(r"```json\s*", "", text)
     text = re.sub(r"```\s*", "", text)
     try:

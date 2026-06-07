@@ -36,7 +36,6 @@ def generate_pr(state: dict) -> dict:
     plan = state.get("plan", "")
     validation_passed = state.get("validation_passed", False)
 
-    # ── generate diff ───────────────────────────────────────
     diff = get_diff(repo_path)
 
     if not diff:
@@ -47,7 +46,6 @@ def generate_pr(state: dict) -> dict:
             "messages": ["⚠ No diff generated – no files were changed."],
         }
 
-    # ── ask LLM to write PR ─────────────────────────────────
     prompt = f"""## Original Issue #{issue_number}: {issue_title}
 
 {issue_body[:1500]}
@@ -87,8 +85,6 @@ BODY:
         "messages": [f"✓ PR generated: {pr_title}"],
     }
 
-
-# ────────────────────── helpers ─────────────────────────────
 
 def _parse_pr(text: str, issue_number: int) -> tuple[str, str]:
     """Extract title and body from the LLM response."""

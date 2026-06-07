@@ -58,7 +58,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # ── override model if requested ─────────────────────────
     if args.model:
         import config
         config.MODEL_NAME = args.model
@@ -69,7 +68,6 @@ def main() -> None:
         config.LLM_PROVIDER = args.provider
         print(f"⚙  Provider overridden → {args.provider}")
 
-    # ── resolve issue number ────────────────────────────────
     issue_input = args.issue
     issue_number = None
     issue_url = ""
@@ -94,7 +92,6 @@ def main() -> None:
         repo_clean = args.repo.rstrip("/")
         issue_url = f"https://github.com/{repo_clean}/issues/{issue_number}"
 
-    # ── print banner ────────────────────────────────────────
     print("=" * 60)
     print("  Agentic Go Contributor")
     print("=" * 60)
@@ -107,7 +104,6 @@ def main() -> None:
     print("=" * 60)
     print()
 
-    # ── build and run the workflow ──────────────────────────
     from workflow.graph import build_graph
 
     graph = build_graph()
@@ -124,7 +120,6 @@ def main() -> None:
 
     print("▶ Starting agent workflow …\n")
 
-    # Stream node-by-node for visibility
     final_state = None
     try:
         for step in graph.stream(initial_state, stream_mode="updates"):
@@ -153,7 +148,6 @@ def main() -> None:
     elapsed = time.time() - start
     print(f"⏱  Total time: {elapsed:.1f}s\n")
 
-    # ── output results ──────────────────────────────────────
     if final_state is None:
         print("ERROR: Workflow produced no output.")
         sys.exit(1)
@@ -175,7 +169,6 @@ def main() -> None:
     print(pr_body)
     print("-" * 60)
 
-    # ── save to output/ ─────────────────────────────────────
     out_dir = os.path.join(config.OUTPUT_DIR, f"issue-{issue_number}")
     os.makedirs(out_dir, exist_ok=True)
 
@@ -191,7 +184,6 @@ def main() -> None:
     with open(os.path.join(out_dir, "plan.md"), "w") as f:
         f.write(final_state.get("plan", ""))
 
-    # Save full agent log
     with open(os.path.join(out_dir, "agent_log.json"), "w") as f:
         log_data = {
             "repo": args.repo,

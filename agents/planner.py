@@ -36,7 +36,6 @@ def plan_changes(state: dict) -> dict:
     test_files = state.get("test_files", [])
     test_contents = state.get("test_contents", {})
 
-    # ── build file summaries (truncated to stay within context) ──
     source_section = _format_files(file_contents, max_lines=200)
     test_section = _format_files(test_contents, max_lines=100)
 
@@ -81,8 +80,6 @@ Produce a numbered plan to fix this issue.  For each step include:
         "messages": [f"✓ Plan generated ({len(plan)} chars)"],
     }
 
-
-# ────────────────────── helpers ─────────────────────────────
 
 def _format_files(mapping: dict[str, str], max_lines: int = 200) -> str:
     """Format a ``{path: content}`` dict into a prompt-friendly block."""

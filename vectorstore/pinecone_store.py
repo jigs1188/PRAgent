@@ -63,8 +63,6 @@ class CodeVectorStore:
 
         self._index = self._pc.Index(PINECONE_INDEX_NAME)
 
-    # ──────────────────── index code map ────────────────────
-
     def index_code_map(
         self,
         code_map: list[dict],

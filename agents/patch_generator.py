@@ -69,12 +69,10 @@ def generate_patches(state: dict) -> dict:
     repo_path = state["repo_path"]
     issue_title = state.get("issue_title", "")
 
-    # On retries, include previous errors
     retry_count = state.get("retry_count", 0)
     validation_errors = state.get("validation_errors", [])
     prev_patches = state.get("patches", [])
 
-    # ── build source context ────────────────────────────────
     all_files = {**file_contents, **test_contents}
     source_block = _format_sources(all_files)
 
@@ -102,11 +100,7 @@ Generate search/replace patches to implement the plan above.
         HumanMessage(content=prompt),
     ])
 
-    # ── parse patches from LLM output ──────────────────────
     raw_patches = _parse_patches(response.content)
-
-    # ── apply patches to disk ──────────────────────────────
-    applied: list[dict] = []
     apply_errors: list[str] = []
 
     for patch in raw_patches:
@@ -122,7 +116,6 @@ Generate search/replace patches to implement the plan above.
             applied.append(patch)
             continue
 
-        # Read current content
         try:
             with open(abs_path, "r", encoding="utf-8") as fh:
                 content = fh.read()
@@ -159,8 +152,6 @@ Generate search/replace patches to implement the plan above.
     }
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━ patch parser ━━━━━━━━━━━━━━━━━━━━━━
-
 _PATCH_RE = re.compile(
     r"###\s*File:\s*(?P<file>\S+)[^\r\n]*\r?\n"
     r"<<<<<<< SEARCH\r?\n"
@@ -185,8 +176,6 @@ def _parse_patches(text: str) -> list[dict]:
         )
     return patches
 
-
-# ━━━━━━━━━━━━━━━━━━━━━━ helpers ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def _normalise_ws(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()

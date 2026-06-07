@@ -68,8 +68,6 @@ def _run(cmd: list[str], cwd: str) -> RunResult:
         )
 
 
-# ──────────────────────── public API ────────────────────────
-
 def run_go_build(repo_path: str) -> RunResult:
     """Run ``go build ./...`` to verify compilation."""
     return _run(["go", "build", "./..."], cwd=repo_path)

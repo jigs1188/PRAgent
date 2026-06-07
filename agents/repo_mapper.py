@@ -26,16 +26,11 @@ def map_repository(state: dict) -> dict:
     repo_url = state["repo_url"]
     issue_number = state.get("issue_number", 0)
 
-    # ── resolve repo name ───────────────────────────────────
     match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", repo_url)
     repo_name = match.group(1).rstrip("/") if match else repo_url
     repo_name = repo_name.removesuffix(".git")
 
-    # ── clone ───────────────────────────────────────────────
     repo_path = clone_repo(repo_name)
-
-    # ── create working branch ───────────────────────────────
-    branch_name = f"ai/fix-issue-{issue_number}"
     create_branch(repo_path, branch_name)
 
     # ── build code map (tree-sitter or regex) ───────────────
@@ -52,11 +47,7 @@ def map_repository(state: dict) -> dict:
         count = store.index_code_map(code_map, repo_name)
         store.save_cache(repo_name, commit_hash, count)
 
-    # ── directory structure ─────────────────────────────────
     repo_structure = get_repo_structure(repo_path)
-
-    # ── summarise the repo with LLM ─────────────────────────
-    readme = _safe_read(repo_path, "README.md")
     gomod = _safe_read(repo_path, "go.mod")
 
     llm = get_llm()

@@ -53,7 +53,6 @@ def build_graph() -> StateGraph:
 
     graph = StateGraph(AgentState)
 
-    # ── nodes ───────────────────────────────────────────────
     graph.add_node("analyze_issue", analyze_issue)
     graph.add_node("map_repository", map_repository)
     graph.add_node("retrieve_context", retrieve_context)
@@ -62,7 +61,6 @@ def build_graph() -> StateGraph:
     graph.add_node("validate_changes", validate_changes)
     graph.add_node("generate_pr", generate_pr)
 
-    # ── edges (linear) ─────────────────────────────────────
     graph.set_entry_point("analyze_issue")
     graph.add_edge("analyze_issue", "map_repository")
     graph.add_edge("map_repository", "retrieve_context")
@@ -70,7 +68,6 @@ def build_graph() -> StateGraph:
     graph.add_edge("plan_changes", "generate_patches")
     graph.add_edge("generate_patches", "validate_changes")
 
-    # ── conditional edge (validation loop) ──────────────────
     graph.add_conditional_edges(
         "validate_changes",
         _should_retry,

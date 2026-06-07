@@ -40,7 +40,6 @@ def clone_repo(repo_url: str, dest: str | None = None) -> str:
         print(f"  ↳ Repository already cloned at {local_path}")
         try:
             repo = Repo(local_path)
-            # Stash any local changes (from a previous AI run) so pull succeeds
             has_changes = repo.is_dirty(untracked_files=True)
             if has_changes:
                 print("  ↳ Stashing local changes before pull …")
@@ -48,7 +47,6 @@ def clone_repo(repo_url: str, dest: str | None = None) -> str:
             origin = repo.remotes.origin
             origin.pull()
             print("  ↳ Pulled latest changes")
-            # Drop the stash – we want a clean upstream checkout for the new run
             if has_changes:
                 try:
                     repo.git.stash("drop")
@@ -72,7 +70,6 @@ def create_branch(repo_path: str, branch_name: str) -> str:
     """
     repo = Repo(repo_path)
     if branch_name in [b.name for b in repo.branches]:
-        # Reset to a clean state before reusing the branch
         repo.git.checkout(branch_name)
         try:
             # Figure out the default branch (main or master)
@@ -94,7 +91,6 @@ def create_branch(repo_path: str, branch_name: str) -> str:
 def get_diff(repo_path: str) -> str:
     """Return the unified diff of all unstaged + staged changes."""
     repo = Repo(repo_path)
-    # Stage everything first
     repo.git.add(A=True)
     diff = repo.git.diff("--cached")
     return diff

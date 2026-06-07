@@ -18,17 +18,6 @@ logger = logging.getLogger(__name__)
 def get_llm(temperature: float = 0):
     """Return a LangChain chat model for the configured provider.
 
-    Reads ``LLM_PROVIDER`` and ``MODEL_NAME`` from ``config`` at call-time
-    so that CLI overrides (``--model``, ``--provider``) are respected even
-    after this module has been imported.
-
-    Rate-limit handling
-    -------------------
-    For Gemini the returned model is wrapped in a thin retry layer that
-    catches 429 RESOURCE_EXHAUSTED responses and backs off automatically.
-    This handles transient per-minute quota spikes without crashing the
-    entire workflow.
-
     Supported providers
     -------------------
     * ``gemini``     – Google Generative AI  (default, free tier)
