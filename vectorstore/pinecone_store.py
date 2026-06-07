@@ -30,13 +30,22 @@ class CodeVectorStore:
 
     def __init__(self) -> None:
         from pinecone import Pinecone, ServerlessSpec          # type: ignore[import-untyped]
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
+        from config import LLM_PROVIDER, OPENAI_API_KEY
+        
         self._pc = Pinecone(api_key=PINECONE_API_KEY)
-        self._embeddings = GoogleGenerativeAIEmbeddings(
-            model=EMBEDDING_MODEL,
-            google_api_key=GOOGLE_API_KEY,
-        )
+        
+        if LLM_PROVIDER == "openai":
+            from langchain_openai import OpenAIEmbeddings
+            self._embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-large", # 3072 dimensions
+                openai_api_key=OPENAI_API_KEY,
+            )
+        else:
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
+            self._embeddings = GoogleGenerativeAIEmbeddings(
+                model=EMBEDDING_MODEL,
+                google_api_key=GOOGLE_API_KEY,
+            )
 
         # Create index if it doesn't exist
         existing = [idx.name for idx in self._pc.list_indexes()]

@@ -28,13 +28,14 @@ GITHUB_TOKEN:      str = os.getenv("GITHUB_TOKEN", "")          # optional – r
 # Pinecone vector DB
 # ────────────────────────────────────────────────────────────
 PINECONE_API_KEY:    str = os.getenv("PINECONE_API_KEY", "")
-PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME", "go-contributor")
+_base_index = os.getenv("PINECONE_INDEX_NAME", "go-contributor-v2")
+PINECONE_INDEX_NAME: str = f"{_base_index}-openai" if LLM_PROVIDER == "openai" else _base_index
 PINECONE_CLOUD:      str = os.getenv("PINECONE_CLOUD", "aws")
 PINECONE_REGION:     str = os.getenv("PINECONE_REGION", "us-east-1")
 
 # Embedding model (Google text-embedding-004 is free)
-EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
-EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "3072"))
+EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
+EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "768"))
 
 # ────────────────────────────────────────────────────────────
 # Agent behaviour

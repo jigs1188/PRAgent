@@ -99,10 +99,14 @@ cp .env.example .env
 Edit `.env` to include your LLM provider key and a Pinecone vector DB key (the free tier is sufficient).
 
 ```env
-# Gemini is used by default for LLM and Embeddings
-GOOGLE_API_KEY=your_gemini_api_key
+# ── LLM Configuration ──
+# Change these two variables to switch LLMs (e.g., LLM_PROVIDER=openai, MODEL_NAME=gpt-4o)
+LLM_PROVIDER=gemini
+MODEL_NAME=gemini-2.5-flash
 
-# Pinecone is required for the AST code map
+# ── API Keys ──
+GOOGLE_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key_if_using_openai
 PINECONE_API_KEY=your_pinecone_api_key
 ```
 
@@ -147,11 +151,11 @@ The system is entirely provider-agnostic. You can switch to OpenAI (e.g. `gpt-4o
    python main.py --repo spf13/cobra --issue 1860 --provider anthropic --model claude-3-5-sonnet-20241022
    ```
 
-**Method 2: Changing the Default Config**
-If you want to permanently change the default model, open `config.py` and modify these two lines:
-```python
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")   # Options: gemini, openai, anthropic
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+**Method 2: Changing the .env File (Recommended for Permanent Switching)**
+Because `config.py` uses `load_dotenv(override=True)`, you can permanently change the default model by updating your `.env` file directly:
+```env
+LLM_PROVIDER=openai
+MODEL_NAME=gpt-4o
 ```
 
 ---
@@ -171,4 +175,25 @@ output/issue-1860/
 └── agent_log.json    # Detailed execution trace, timings, and validation pass/fail status
 ```
 
-You can take the `changes.diff` file and apply it directly via `git apply changes.diff` to test the generated code manually.
+### How to Verify the Output
+
+Once the CLI finishes, you can review the agent's work directly. On Linux/macOS or Git Bash, you can run:
+
+```bash
+# View the generated plan the LLM followed
+cat output/issue-1860/plan.md
+
+# View the actual code changes
+cat output/issue-1860/changes.diff
+
+# View the ready-to-merge Pull Request description
+cat output/issue-1860/pr_body.md
+```
+
+**Verifying the code:**
+You can verify the agent actually wrote valid code by applying the diff directly to the cloned repository and running the tests manually:
+```bash
+cd repos/cobra
+git apply ../../output/issue-1860/changes.diff
+go test ./...
+```

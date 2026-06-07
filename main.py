@@ -17,9 +17,13 @@ import os
 import re
 import sys
 import time
+import warnings
 
 # Ensure project root is on PYTHONPATH
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Suppress annoying Langchain Gemini warning
+warnings.filterwarnings("ignore", message="Both GOOGLE_API_KEY and GEMINI_API_KEY are set")
 
 
 def main() -> None:
