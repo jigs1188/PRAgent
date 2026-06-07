@@ -57,10 +57,9 @@ def retrieve_context(state: dict) -> dict:
         for r in results:
             grep_files.add(r["file"])
 
-    # ── combine candidates ──────────────────────────────────
-            grep_files.add(r["file"])
-
     all_candidates = sorted(semantic_files | grep_files)
+
+    prompt = f"""Issue: {issue_title}
 Keywords: {', '.join(keywords)}
 Components: {', '.join(components)}
 Repository summary: {repo_summary}
