@@ -1,0 +1,12 @@
+repos/
+.cache/
+output/
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.pdf
+test_*.py
+list_models.py
+scripts/

@@ -1,0 +1,22 @@
+# ── Core LLM orchestration ──
+langchain-core>=0.3.0
+langgraph>=0.2.0
+
+# ── LLM providers (Gemini is default; install others only if needed) ──
+langchain-google-genai>=2.0.0
+# langchain-openai>=0.2.0        # uncomment for OpenAI
+# langchain-anthropic>=0.3.0     # uncomment for Anthropic
+
+# ── Vector store ──
+pinecone>=5.0.0
+
+# ── Repository operations ──
+gitpython>=3.1.0
+
+# ── Go code parsing ──
+tree-sitter>=0.23.0
+tree-sitter-go>=0.23.0
+
+# ── Utilities ──
+requests>=2.31.0
+python-dotenv>=1.0.0
