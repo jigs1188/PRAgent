@@ -48,8 +48,27 @@ def analyze_issue(state: dict) -> dict:
 
     # ── fetch issue ─────────────────────────────────────────
     api = f"https://api.github.com/repos/{repo_name}/issues/{issue_number}"
-    resp = requests.get(api, headers=headers, timeout=30)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(api, headers=headers, timeout=30)
+        if resp.status_code == 401:
+            raise RuntimeError(
+                "GitHub API returned 401 Unauthorized. "
+                "Check your GITHUB_TOKEN in .env."
+            )
+        if resp.status_code == 403:
+            raise RuntimeError(
+                "GitHub API returned 403 Forbidden (likely rate-limited). "
+                "Set GITHUB_TOKEN in .env to raise the rate limit."
+            )
+        if resp.status_code == 404:
+            raise RuntimeError(
+                f"Issue #{issue_number} not found in {repo_name}. "
+                "Verify the repository name and issue number."
+            )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Failed to fetch GitHub issue: {exc}") from exc
+
     data = resp.json()
 
     issue_title = data.get("title", "")
@@ -58,8 +77,11 @@ def analyze_issue(state: dict) -> dict:
 
     # ── fetch comments (often more valuable than the body) ──
     comments_url = f"{api}/comments"
-    cresp = requests.get(comments_url, headers=headers, timeout=30)
-    raw_comments = cresp.json() if cresp.status_code == 200 else []
+    try:
+        cresp = requests.get(comments_url, headers=headers, timeout=30)
+        raw_comments = cresp.json() if cresp.status_code == 200 else []
+    except requests.RequestException:
+        raw_comments = []
 
     issue_comments: list[str] = []
     for c in raw_comments[:15]:

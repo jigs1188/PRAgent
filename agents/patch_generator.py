@@ -162,10 +162,10 @@ Generate search/replace patches to implement the plan above.
 # ━━━━━━━━━━━━━━━━━━━━━━ patch parser ━━━━━━━━━━━━━━━━━━━━━━
 
 _PATCH_RE = re.compile(
-    r"###\s*File:\s*(?P<file>\S+)\s*\n"
-    r"<<<<<<< SEARCH\n"
+    r"###\s*File:\s*(?P<file>\S+)[^\r\n]*\r?\n"
+    r"<<<<<<< SEARCH\r?\n"
     r"(?P<search>.*?)"
-    r"=======\n"
+    r"=======\r?\n"
     r"(?P<replace>.*?)"
     r">>>>>>> REPLACE",
     re.DOTALL,

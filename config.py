@@ -14,7 +14,7 @@ load_dotenv(override=True)
 # LLM – change these two values to swap models at any time
 # ────────────────────────────────────────────────────────────
 LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")        # gemini | openai | anthropic
-MODEL_NAME: str   = os.getenv("MODEL_NAME", "gemini-2.5-flash") # model identifier
+MODEL_NAME: str   = os.getenv("MODEL_NAME", "gemini-2.0-flash") # model identifier
 
 # ────────────────────────────────────────────────────────────
 # API keys
@@ -33,9 +33,10 @@ PINECONE_INDEX_NAME: str = f"{_base_index}-openai" if LLM_PROVIDER == "openai" e
 PINECONE_CLOUD:      str = os.getenv("PINECONE_CLOUD", "aws")
 PINECONE_REGION:     str = os.getenv("PINECONE_REGION", "us-east-1")
 
-# Embedding model (Google text-embedding-004 is free)
-EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
-EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "768"))
+# Embedding model – gemini-embedding-001 is the stable Google model (3072 dims).
+# text-embedding-004 is NOT available on the v1beta API endpoint used by langchain-google-genai.
+EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
+EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "3072"))
 
 # ────────────────────────────────────────────────────────────
 # Agent behaviour

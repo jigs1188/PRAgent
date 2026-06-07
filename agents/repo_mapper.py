@@ -44,14 +44,13 @@ def map_repository(state: dict) -> dict:
     store = CodeVectorStore()
     if store.is_cached(repo_name, commit_hash):
         print("  ↳ Code map already indexed (cache hit)")
+        # Still need to build the in-memory code_map for later agents
+        code_map = build_code_map(repo_path)
     else:
         print("  ↳ Building code map …")
         code_map = build_code_map(repo_path)
         count = store.index_code_map(code_map, repo_name)
         store.save_cache(repo_name, commit_hash, count)
-
-    # Re-build in-memory code_map (always needed by later agents)
-    code_map = build_code_map(repo_path)
 
     # ── directory structure ─────────────────────────────────
     repo_structure = get_repo_structure(repo_path)

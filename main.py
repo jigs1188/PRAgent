@@ -126,13 +126,29 @@ def main() -> None:
 
     # Stream node-by-node for visibility
     final_state = None
-    for step in graph.stream(initial_state, stream_mode="updates"):
-        for node_name, node_output in step.items():
-            # Print log messages from this node
-            for msg in node_output.get("messages", []):
-                print(f"  [{node_name}] {msg}")
-            final_state = {**(final_state or initial_state), **node_output}
-        print()
+    try:
+        for step in graph.stream(initial_state, stream_mode="updates"):
+            for node_name, node_output in step.items():
+                # Print log messages from this node
+                for msg in node_output.get("messages", []):
+                    print(f"  [{node_name}] {msg}")
+                final_state = {**(final_state or initial_state), **node_output}
+            print()
+    except KeyboardInterrupt:
+        print("\n\n⚠  Interrupted by user.")
+        sys.exit(1)
+    except Exception as exc:
+        print(f"\n\n❌ Workflow failed: {exc}")
+        print(
+            "\nTips:\n"
+            "  • Ensure GOOGLE_API_KEY (or OPENAI_API_KEY) is set in .env\n"
+            "  • Ensure PINECONE_API_KEY is set in .env\n"
+            "  • Ensure GITHUB_TOKEN is set to avoid API rate limits\n"
+            "  • Ensure Go is installed and on PATH (required for validation)\n"
+        )
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
     elapsed = time.time() - start
     print(f"⏱  Total time: {elapsed:.1f}s\n")
