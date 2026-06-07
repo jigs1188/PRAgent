@@ -24,7 +24,6 @@ Always respond with **valid JSON only** – no markdown fences, no commentary.""
 
 
 def analyze_issue(state: dict) -> dict:
-    """LangGraph node: fetch issue + comments, classify with LLM."""
 
     repo_url = state["repo_url"]
     issue_number = state.get("issue_number")

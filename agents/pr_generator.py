@@ -27,7 +27,6 @@ Rules:
 
 
 def generate_pr(state: dict) -> dict:
-    """LangGraph node: create PR title + body from the diff."""
 
     repo_path = state["repo_path"]
     issue_number = state.get("issue_number", 0)

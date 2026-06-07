@@ -27,7 +27,6 @@ relevant to fixing the issue. Return **only valid JSON** – no markdown fences.
 
 
 def retrieve_context(state: dict) -> dict:
-    """LangGraph node: find relevant source + test files."""
 
     repo_path = state["repo_path"]
     repo_name = _repo_name(state["repo_url"])

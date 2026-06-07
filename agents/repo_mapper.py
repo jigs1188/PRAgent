@@ -21,7 +21,6 @@ from vectorstore.pinecone_store import CodeVectorStore
 
 
 def map_repository(state: dict) -> dict:
-    """LangGraph node: clone → parse → index → summarise."""
 
     repo_url = state["repo_url"]
     issue_number = state.get("issue_number", 0)

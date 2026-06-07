@@ -24,7 +24,6 @@ Rules:
 
 
 def plan_changes(state: dict) -> dict:
-    """LangGraph node: generate a step-by-step change plan."""
 
     issue_title = state.get("issue_title", "")
     issue_body = state.get("issue_body", "")

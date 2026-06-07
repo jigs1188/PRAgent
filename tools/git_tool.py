@@ -13,20 +13,6 @@ from config import REPOS_DIR
 
 
 def clone_repo(repo_url: str, dest: str | None = None) -> str:
-    """Clone a GitHub repository and return the local path.
-
-    Parameters
-    ----------
-    repo_url : str
-        Either ``owner/repo`` or ``https://github.com/owner/repo``.
-    dest : str, optional
-        Override destination directory.
-
-    Returns
-    -------
-    str
-        Absolute path to the cloned repository.
-    """
     # Normalise URL
     if not repo_url.startswith("http"):
         repo_url = f"https://github.com/{repo_url}.git"

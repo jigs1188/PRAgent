@@ -47,7 +47,6 @@ def parse_go_file(filepath: str) -> list[dict]:
 
 
 def build_code_map(repo_path: str) -> list[dict]:
-    """Build a full code map of the repository (all ``.go`` files)."""
     code_map: list[dict] = []
     for rel_path in find_files(repo_path, "*.go"):
         abs_path = os.path.join(repo_path, rel_path)
@@ -118,7 +117,6 @@ def _parse_tree_sitter(filepath: str) -> list[dict]:
 
 
 def _entry(*, name: str, kind: str, filepath: str, node, source: bytes) -> dict:
-    """Build a code-map dict from a tree-sitter node."""
     # Signature = text from node start to the opening brace (or end of node)
     sig_bytes = source[node.start_byte: node.end_byte]
     sig_text = sig_bytes.decode(errors="replace")

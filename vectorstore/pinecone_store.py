@@ -26,7 +26,6 @@ from config import (
 
 
 class CodeVectorStore:
-    """Manages Pinecone index for code-map embeddings."""
 
     def __init__(self) -> None:
         from pinecone import Pinecone, ServerlessSpec          # type: ignore[import-untyped]

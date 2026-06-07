@@ -12,7 +12,6 @@ from tools.test_runner import run_all_checks
 
 
 def validate_changes(state: dict) -> dict:
-    """LangGraph node: compile, vet, test the modified repo."""
 
     repo_path = state["repo_path"]
     retry_count = state.get("retry_count", 0)

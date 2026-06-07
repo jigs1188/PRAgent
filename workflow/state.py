@@ -16,7 +16,6 @@ from typing import Annotated, TypedDict
 
 
 class AgentState(TypedDict, total=False):
-    """Typed state flowing through every node of the agent graph."""
 
     # ── Input (set once by main.py) ─────────────────────────
     repo_url: str                       # e.g. "spf13/cobra"

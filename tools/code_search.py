@@ -83,13 +83,11 @@ def search_files(
 
 
 def read_file(file_path: str) -> str:
-    """Read and return file contents (UTF-8, lenient)."""
     with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
         return fh.read()
 
 
 def read_file_in_repo(repo_path: str, relative_path: str) -> str:
-    """Read a file given a repo root and relative path."""
     return read_file(os.path.join(repo_path, relative_path))
 
 
@@ -97,12 +95,10 @@ def find_files(
     repo_path: str,
     pattern: str = "*.go",
 ) -> list[str]:
-    """Return a list of relative paths matching a glob *pattern*."""
     return list(_iter_files_relative(repo_path, pattern))
 
 
 def find_test_files(repo_path: str) -> list[str]:
-    """Find all ``*_test.go`` files in the repo."""
     return find_files(repo_path, "*_test.go")
 
 

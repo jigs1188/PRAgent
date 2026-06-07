@@ -61,7 +61,6 @@ Fix them while keeping the same overall approach.
 
 
 def generate_patches(state: dict) -> dict:
-    """LangGraph node: generate search/replace patches from the plan."""
 
     plan = state.get("plan", "")
     file_contents = state.get("file_contents", {})
