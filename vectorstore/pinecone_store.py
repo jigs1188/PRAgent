@@ -84,11 +84,17 @@ class CodeVectorStore:
 
         # Embed in batches (rate-limit friendly)
         all_vectors: list[dict[str, Any]] = []
+        from tenacity import retry, stop_after_attempt, wait_exponential
+        
+        @retry(stop=stop_after_attempt(10), wait=wait_exponential(multiplier=1, min=10, max=60))
+        def _safe_embed(texts):
+            return self._embeddings.embed_documents(texts)
+            
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i : i + batch_size]
             batch_entries = code_map[i : i + batch_size]
 
-            embeddings = self._embeddings.embed_documents(batch_texts)
+            embeddings = _safe_embed(batch_texts)
 
             for j, (vec, entry) in enumerate(zip(embeddings, batch_entries)):
                 vec_id = self._make_id(repo_name, entry, i + j)
@@ -109,7 +115,7 @@ class CodeVectorStore:
 
             # Small delay between batches to respect rate limits
             if i + batch_size < len(texts):
-                time.sleep(0.5)
+                time.sleep(2.0)
 
         # Upsert into Pinecone (batch of 100 max)
         namespace = repo_name.replace("/", "_")
