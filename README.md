@@ -44,11 +44,11 @@ graph TD
    ```
 
 3. **Set API Keys**
-   Copy `.env.example` to `.env` and provide your credentials.
+   Copy `.env.example` to `.env` and provide your credentials. The system supports multiple LLM providers, making it easy for evaluators to test using their preferred APIs (OpenAI, Gemini, or Anthropic/Claude).
    ```bash
    cp .env.example .env
    ```
-   *Note: Only `GOOGLE_API_KEY` (or `OPENAI_API_KEY` if configured) is strictly required.*
+   *Note: Ensure you set the relevant key (e.g., `OPENAI_API_KEY`, `GOOGLE_API_KEY`, or `ANTHROPIC_API_KEY`) depending on the provider you intend to use.*
 
 ## Usage
 
