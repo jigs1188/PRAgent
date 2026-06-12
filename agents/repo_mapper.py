@@ -37,8 +37,12 @@ def map_repository(state: dict) -> dict:
     else:
         print("  ↳ Building code map …")
         code_map = build_code_map(repo_path)
-        count = store.index_code_map(code_map, repo_name)
-        store.save_cache(repo_name, commit_hash, count)
+        try:
+            count = store.index_code_map(code_map, repo_name)
+            store.save_cache(repo_name, commit_hash, count)
+        except Exception as exc:
+            print(f"  ⚠  Embedding/Indexing failed: {exc}. Proceeding with grep/keyword fallback.")
+            store.save_cache(repo_name, commit_hash, 0)
 
     repo_structure = get_repo_structure(repo_path)
 

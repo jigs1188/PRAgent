@@ -53,7 +53,7 @@ class LocalVectorStore:
         code_map: list[dict],
         repo_name: str,
         *,
-        batch_size: int = 80,
+        batch_size: int = 1000,
     ) -> int:
         if not code_map:
             return 0
@@ -71,7 +71,7 @@ class LocalVectorStore:
         all_vectors: list[dict[str, Any]] = []
         from tenacity import retry, stop_after_attempt, wait_exponential
 
-        @retry(stop=stop_after_attempt(10), wait=wait_exponential(multiplier=1, min=10, max=60))
+        @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=5, max=15))
         def _safe_embed(texts):
             return self._embeddings.embed_documents(texts)
 

@@ -75,7 +75,16 @@ class _RateLimitWrapper:
         last_exc = None
         for attempt in range(1, self._MAX_ATTEMPTS + 1):
             try:
-                return self._llm.invoke(messages, **kwargs)
+                res = self._llm.invoke(messages, **kwargs)
+                if hasattr(res, "content") and isinstance(res.content, list):
+                    text_parts = []
+                    for part in res.content:
+                        if isinstance(part, str):
+                            text_parts.append(part)
+                        elif isinstance(part, dict) and "text" in part:
+                            text_parts.append(part["text"])
+                    res.content = "".join(text_parts)
+                return res
             except Exception as exc:
                 exc_str = str(exc)
                 if "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str:
