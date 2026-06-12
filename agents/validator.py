@@ -1,11 +1,3 @@
-"""
-Validator Agent
-
-Runs ``go build``, ``go vet``, and ``go test`` against the modified
-repository.  If anything fails the errors are recorded so the
-Patch Generator can retry.
-"""
-
 from __future__ import annotations
 
 from tools.test_runner import run_all_checks

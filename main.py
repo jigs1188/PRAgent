@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Agentic Go Contributor – CLI entry point.
-
-Usage
------
-    python main.py --repo spf13/cobra --issue 123
-    python main.py --repo spf13/cobra --issue https://github.com/spf13/cobra/issues/123
-    python main.py --repo spf13/cobra --issue 123 --model gemini-1.5-pro
-"""
-
 from __future__ import annotations
 
 import argparse

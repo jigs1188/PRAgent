@@ -1,13 +1,3 @@
-"""
-Context Retriever Agent
-
-Combines:
-1. **Pinecone semantic search** – finds relevant symbols from the code map.
-2. **Keyword grep** – searches source files for issue keywords.
-3. **Test discovery** – finds neighbouring ``*_test.go`` files for every
-   relevant source file so the Planner knows what tests exist.
-"""
-
 from __future__ import annotations
 
 import json
@@ -18,7 +8,7 @@ from agents import get_llm
 from config import MAX_CONTEXT_FILES
 from langchain_core.messages import HumanMessage, SystemMessage
 from tools.code_search import find_test_files, read_file_in_repo, search_files
-from vectorstore.pinecone_store import CodeVectorStore
+from vectorstore.local_store import LocalVectorStore
 
 _SYSTEM = """\
 You are an expert Go developer. Given an issue analysis, a repository summary,
@@ -38,7 +28,7 @@ def retrieve_context(state: dict) -> dict:
     code_map = state.get("code_map", [])
 
     query = f"{issue_title} {' '.join(keywords)} {' '.join(components)}"
-    store = CodeVectorStore()
+    store = LocalVectorStore()
     semantic_hits = store.search(query, repo_name, top_k=20)
 
     semantic_files: set[str] = set()

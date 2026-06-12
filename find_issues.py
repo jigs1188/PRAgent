@@ -1,4 +1,3 @@
-"""Find more Cobra issues including all states."""
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 import requests

@@ -1,10 +1,3 @@
-"""
-Issue Analyzer Agent
-
-Fetches the GitHub issue **and its comments**, then uses the LLM to
-classify the issue type, extract keywords, and identify affected components.
-"""
-
 from __future__ import annotations
 
 import json
@@ -29,59 +22,13 @@ def analyze_issue(state: dict) -> dict:
     issue_number = state.get("issue_number")
     issue_url = state.get("issue_url", "")
 
-    match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", repo_url)
-    repo_name = match.group(1).rstrip("/") if match else repo_url
-    repo_name = repo_name.removesuffix(".git")
-
-    if issue_url and not issue_number:
-        m = re.search(r"/issues/(\d+)", issue_url)
-        if m:
-            issue_number = int(m.group(1))
-
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"token {GITHUB_TOKEN}"
-
-    api = f"https://api.github.com/repos/{repo_name}/issues/{issue_number}"
-    try:
-        resp = requests.get(api, headers=headers, timeout=30)
-        if resp.status_code == 401:
-            raise RuntimeError(
-                "GitHub API returned 401 Unauthorized. "
-                "Check your GITHUB_TOKEN in .env."
-            )
-        if resp.status_code == 403:
-            raise RuntimeError(
-                "GitHub API returned 403 Forbidden (likely rate-limited). "
-                "Set GITHUB_TOKEN in .env to raise the rate limit."
-            )
-        if resp.status_code == 404:
-            raise RuntimeError(
-                f"Issue #{issue_number} not found in {repo_name}. "
-                "Verify the repository name and issue number."
-            )
-        resp.raise_for_status()
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Failed to fetch GitHub issue: {exc}") from exc
-
-    data = resp.json()
-
-    issue_title = data.get("title", "")
-    issue_body = data.get("body", "") or ""
-    labels = [lb["name"] for lb in data.get("labels", [])]
-
-    comments_url = f"{api}/comments"
-    try:
-        cresp = requests.get(comments_url, headers=headers, timeout=30)
-        raw_comments = cresp.json() if cresp.status_code == 200 else []
-    except requests.RequestException:
-        raw_comments = []
-
-    issue_comments: list[str] = []
-    for c in raw_comments[:15]:
-        user = c.get("user", {}).get("login", "unknown")
-        body = c.get("body", "")
-        issue_comments.append(f"@{user}: {body}")
+    issue = fetch_issue(repo_url, issue_number=issue_number, issue_url=issue_url)
+    repo_name = issue["repo_name"]
+    issue_number = issue["issue_number"]
+    issue_title = issue["title"]
+    issue_body = issue["body"]
+    labels = issue["labels"]
+    issue_comments = issue["comments"]
 
     prompt = f"""Analyze this GitHub issue from the **{repo_name}** repository.
 
@@ -128,7 +75,6 @@ Return JSON:
 
 
 def _extract_json(text: str) -> dict:
-    """Best-effort JSON extraction from LLM output."""
     text = re.sub(r"```json\s*", "", text)
     text = re.sub(r"```\s*", "", text)
     try:
@@ -141,3 +87,68 @@ def _extract_json(text: str) -> dict:
             except json.JSONDecodeError:
                 pass
     return {}
+
+
+def fetch_issue(repo_url: str, issue_number: int | None = None, issue_url: str = "") -> dict:
+    repo_name = _repo_name(repo_url)
+    issue_number = issue_number or _issue_number(issue_url)
+    if not issue_number:
+        raise RuntimeError("Issue number is required. Pass --issue 123 or a full GitHub issue URL.")
+
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+
+    api = f"https://api.github.com/repos/{repo_name}/issues/{issue_number}"
+    try:
+        resp = requests.get(api, headers=headers, timeout=30)
+        if resp.status_code == 401:
+            raise RuntimeError("GitHub API returned 401 Unauthorized. Check GITHUB_TOKEN in .env.")
+        if resp.status_code == 403:
+            raise RuntimeError(
+                "GitHub API returned 403 Forbidden, likely rate-limited. "
+                "Set GITHUB_TOKEN in .env to raise the limit."
+            )
+        if resp.status_code == 404:
+            raise RuntimeError(f"Issue #{issue_number} not found in {repo_name}.")
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Failed to fetch GitHub issue: {exc}") from exc
+
+    data = resp.json()
+    comments = _fetch_comments(api, headers)
+    return {
+        "repo_name": repo_name,
+        "issue_number": issue_number,
+        "title": data.get("title", ""),
+        "body": data.get("body", "") or "",
+        "labels": [lb["name"] for lb in data.get("labels", [])],
+        "comments": comments,
+    }
+
+
+def _repo_name(url: str) -> str:
+    match = re.match(r"(?:https?://github\.com/)?([^/]+/[^/]+)", url)
+    repo_name = match.group(1).rstrip("/") if match else url
+    return repo_name.removesuffix(".git")
+
+
+def _issue_number(issue_url: str) -> int | None:
+    match = re.search(r"/issues/(\d+)", issue_url)
+    return int(match.group(1)) if match else None
+
+
+def _fetch_comments(api: str, headers: dict[str, str]) -> list[str]:
+    try:
+        resp = requests.get(f"{api}/comments", headers=headers, timeout=30)
+        resp.raise_for_status()
+        raw_comments = resp.json()
+    except requests.RequestException:
+        raw_comments = []
+
+    comments: list[str] = []
+    for item in raw_comments[:15]:
+        user = item.get("user", {}).get("login", "unknown")
+        body = item.get("body", "")
+        comments.append(f"@{user}: {body}")
+    return comments

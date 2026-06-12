@@ -1,10 +1,3 @@
-"""
-agents package – shared LLM factory.
-
-Call ``get_llm()`` from any agent to obtain the configured chat model.
-Switch providers by changing LLM_PROVIDER / MODEL_NAME in config.py or .env.
-"""
-
 from __future__ import annotations
 
 import time
@@ -16,18 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_llm(temperature: float = 0):
-    """Return a LangChain chat model for the configured provider.
-
-    Supported providers
-    -------------------
-    * ``gemini``     – Google Generative AI  (default, free tier)
-    * ``openai``     – OpenAI / Azure
-    * ``anthropic``  – Anthropic Claude
-    """
     provider = _config.LLM_PROVIDER.lower().strip()
     model_name = _config.MODEL_NAME
 
     if provider == "gemini":
+        _require_key("GOOGLE_API_KEY", _config.GOOGLE_API_KEY, provider)
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         return _RateLimitWrapper(
@@ -40,6 +26,7 @@ def get_llm(temperature: float = 0):
         )
 
     if provider == "openai":
+        _require_key("OPENAI_API_KEY", _config.OPENAI_API_KEY, provider)
         from langchain_openai import ChatOpenAI          # type: ignore[import-untyped]
 
         return ChatOpenAI(
@@ -49,6 +36,7 @@ def get_llm(temperature: float = 0):
         )
 
     if provider == "anthropic":
+        _require_key("ANTHROPIC_API_KEY", _config.ANTHROPIC_API_KEY, provider)
         from langchain_anthropic import ChatAnthropic     # type: ignore[import-untyped]
 
         return ChatAnthropic(
@@ -63,20 +51,20 @@ def get_llm(temperature: float = 0):
     )
 
 
+def _require_key(name: str, value: str, provider: str) -> None:
+    if value and not value.startswith("your_"):
+        return
+    raise RuntimeError(
+        f"{name} is required for LLM_PROVIDER={provider!r}. "
+        "Set it in .env before running the agent."
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Rate-limit retry wrapper
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _RateLimitWrapper:
-    """Thin wrapper that retries on 429 / RESOURCE_EXHAUSTED with backoff.
-
-    Gemini's free tier has per-minute (RPM) and per-day (RPD) quotas.
-    Per-minute spikes are transient and resolve within ~30s.
-    Per-day exhaustion (RPD=0) cannot be fixed by retrying — in that case
-    this wrapper re-raises after ``_MAX_ATTEMPTS`` so the caller sees a
-    clear error message.
-    """
-
     _MAX_ATTEMPTS = 5
     _BASE_DELAY   = 30   # seconds (Google suggests "retry in ~21s")
 

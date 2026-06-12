@@ -1,7 +1,3 @@
-"""
-Code search utilities – directory tree, grep, file reader.
-"""
-
 from __future__ import annotations
 
 import fnmatch
@@ -18,11 +14,6 @@ _SKIP_DIRS = {".git", "vendor", "node_modules", "__pycache__", ".idea", ".vscode
 
 # ─────────────────────────── directory tree ─────────────────
 def get_repo_structure(repo_path: str, max_depth: int = 4) -> str:
-    """Return a printable directory tree of the repository.
-
-    Only includes files with extensions in ``_GO_EXTENSIONS``.
-    Skips common non-essential directories.
-    """
     lines: list[str] = []
     repo_path = os.path.abspath(repo_path)
 
@@ -55,10 +46,6 @@ def search_files(
     file_glob: str = "*.go",
     max_results: int = 50,
 ) -> list[dict]:
-    """Regex-search across files matching *file_glob*.
-
-    Returns a list of ``{file, line, match}`` dicts (capped at *max_results*).
-    """
     results: list[dict] = []
     regex = re.compile(pattern, re.IGNORECASE)
 

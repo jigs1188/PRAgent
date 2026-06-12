@@ -1,28 +1,3 @@
-"""
-LangGraph workflow – the central orchestration graph.
-
-Nodes
------
-1. analyze_issue      – fetch & classify the GitHub issue
-2. map_repository     – clone, parse, index into Pinecone
-3. retrieve_context   – semantic + keyword search, test discovery
-4. plan_changes       – generate a step-by-step fix plan
-5. generate_patches   – produce search/replace patches & apply
-6. validate_changes   – go build / vet / test
-7. generate_pr        – write PR title + body from the diff
-
-Edges
------
-Linear flow with a **conditional loop** from ``validate`` back to
-``generate_patches`` when validation fails and retries remain.
-
-  validate ──pass──→ generate_pr
-      │
-      └──fail + retries < MAX──→ generate_patches
-      │
-      └──fail + retries >= MAX──→ generate_pr (best-effort)
-"""
-
 from __future__ import annotations
 
 from langgraph.graph import END, StateGraph
@@ -39,7 +14,6 @@ from workflow.state import AgentState
 
 
 def _should_retry(state: dict) -> str:
-    """Conditional edge: retry patches or proceed to PR."""
     if state.get("validation_passed", False):
         return "generate_pr"
     if state.get("retry_count", 0) < MAX_RETRIES:
@@ -49,8 +23,6 @@ def _should_retry(state: dict) -> str:
 
 
 def build_graph() -> StateGraph:
-    """Construct and compile the agent workflow graph."""
-
     graph = StateGraph(AgentState)
 
     graph.add_node("analyze_issue", analyze_issue)

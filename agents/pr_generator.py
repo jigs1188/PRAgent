@@ -1,10 +1,3 @@
-"""
-PR Generator Agent
-
-Produces a professional pull-request title and body based on the
-issue, plan, and unified diff of all changes.
-"""
-
 from __future__ import annotations
 
 from agents import get_llm
@@ -86,7 +79,6 @@ BODY:
 
 
 def _parse_pr(text: str, issue_number: int) -> tuple[str, str]:
-    """Extract title and body from the LLM response."""
     title = ""
     body = text
 

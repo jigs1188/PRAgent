@@ -1,14 +1,3 @@
-"""
-Shared state schema for the LangGraph workflow.
-
-Every agent node receives the full state and returns a *partial* dict
-with only the keys it wants to update.  LangGraph merges the update
-into the running state automatically.
-
-The ``messages`` field uses ``operator.add`` so log entries from each
-node are appended rather than replaced.
-"""
-
 from __future__ import annotations
 
 import operator

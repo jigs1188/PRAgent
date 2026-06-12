@@ -1,10 +1,3 @@
-"""
-Pinecone-backed vector store for the repository code map.
-
-Stores function/struct/interface signatures as embeddings so that
-the Context Retriever can find relevant code by semantic search.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -22,24 +15,44 @@ from config import (
     PINECONE_CLOUD,
     PINECONE_INDEX_NAME,
     PINECONE_REGION,
+    VECTORSTORE_BACKEND,
 )
 
 
 class CodeVectorStore:
 
     def __init__(self) -> None:
+        from config import LLM_PROVIDER
+
+        self._local = VECTORSTORE_BACKEND.lower() == "local" or LLM_PROVIDER.lower() == "mock"
+        if self._local:
+            self._pc = None
+            self._embeddings = None
+            self._index = None
+            return
+
+        if not PINECONE_API_KEY or PINECONE_API_KEY.startswith("your_"):
+            raise RuntimeError(
+                "PINECONE_API_KEY is required when VECTORSTORE_BACKEND=pinecone. "
+                "Set it in .env or use VECTORSTORE_BACKEND=local for offline tests."
+            )
+
         from pinecone import Pinecone, ServerlessSpec          # type: ignore[import-untyped]
-        from config import LLM_PROVIDER, OPENAI_API_KEY
+        from config import OPENAI_API_KEY
         
         self._pc = Pinecone(api_key=PINECONE_API_KEY)
         
         if LLM_PROVIDER == "openai":
+            if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("your_"):
+                raise RuntimeError("OPENAI_API_KEY is required for OpenAI embeddings.")
             from langchain_openai import OpenAIEmbeddings
             self._embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-large", # 3072 dimensions
                 openai_api_key=OPENAI_API_KEY,
             )
         else:
+            if not GOOGLE_API_KEY or GOOGLE_API_KEY.startswith("your_"):
+                raise RuntimeError("GOOGLE_API_KEY is required for Gemini embeddings.")
             from langchain_google_genai import GoogleGenerativeAIEmbeddings
             self._embeddings = GoogleGenerativeAIEmbeddings(
                 model=EMBEDDING_MODEL,
@@ -69,15 +82,14 @@ class CodeVectorStore:
         *,
         batch_size: int = 80,
     ) -> int:
-        """Embed and upsert code-map entries into Pinecone.
-
-        Uses ``repo_name`` as the Pinecone namespace so multiple
-        repositories can coexist in a single index.
-
-        Returns the number of vectors upserted.
-        """
         if not code_map:
             return 0
+        if self._local:
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            with open(self._local_index_path(repo_name), "w", encoding="utf-8") as fh:
+                json.dump(code_map, fh)
+            print(f"  ↳ Indexed {len(code_map)} code entries into local store")
+            return len(code_map)
 
         # Build text representations for embedding
         texts: list[str] = []
@@ -142,11 +154,9 @@ class CodeVectorStore:
         repo_name: str,
         top_k: int = 15,
     ) -> list[dict]:
-        """Semantic search the code map.
+        if self._local:
+            return self._local_search(query, repo_name, top_k)
 
-        Returns a list of ``{name, type, file, line, signature, score}``
-        dicts sorted by relevance.
-        """
         query_vec = self._embeddings.embed_query(query)
         namespace = repo_name.replace("/", "_")
 
@@ -158,8 +168,10 @@ class CodeVectorStore:
         )
 
         hits: list[dict] = []
-        for match in results.get("matches", []):
-            meta = match.get("metadata", {})
+        matches = results.get("matches", []) if isinstance(results, dict) else getattr(results, "matches", [])
+        for match in matches:
+            meta = match.get("metadata", {}) if isinstance(match, dict) else getattr(match, "metadata", {})
+            score = match.get("score", 0.0) if isinstance(match, dict) else getattr(match, "score", 0.0)
             hits.append(
                 {
                     "name": meta.get("name", ""),
@@ -167,7 +179,7 @@ class CodeVectorStore:
                     "file": meta.get("file", ""),
                     "line": meta.get("line", 0),
                     "signature": meta.get("signature", ""),
-                    "score": match.get("score", 0.0),
+                    "score": score,
                 }
             )
         return hits
@@ -175,16 +187,18 @@ class CodeVectorStore:
     # ──────────────────── cache helpers ─────────────────────
 
     def is_cached(self, repo_name: str, commit_hash: str) -> bool:
-        """Check if this repo+commit has already been indexed."""
         cache_file = self._cache_path(repo_name)
         if not os.path.isfile(cache_file):
             return False
         with open(cache_file, "r") as fh:
             cached = json.load(fh)
-        return cached.get("commit") == commit_hash
+        if cached.get("commit") != commit_hash:
+            return False
+        if self._local:
+            return os.path.isfile(self._local_index_path(repo_name))
+        return True
 
     def save_cache(self, repo_name: str, commit_hash: str, count: int) -> None:
-        """Save indexing metadata to local cache."""
         os.makedirs(CACHE_DIR, exist_ok=True)
         cache_file = self._cache_path(repo_name)
         with open(cache_file, "w") as fh:
@@ -201,3 +215,51 @@ class CodeVectorStore:
     def _cache_path(repo_name: str) -> str:
         safe_name = repo_name.replace("/", "_")
         return os.path.join(CACHE_DIR, f"{safe_name}_index.json")
+
+    @staticmethod
+    def _local_index_path(repo_name: str) -> str:
+        safe_name = repo_name.replace("/", "_")
+        return os.path.join(CACHE_DIR, f"{safe_name}_local_code_map.json")
+
+    def _local_search(self, query: str, repo_name: str, top_k: int) -> list[dict]:
+        path = self._local_index_path(repo_name)
+        if not os.path.isfile(path):
+            return []
+        with open(path, "r", encoding="utf-8") as fh:
+            entries = json.load(fh)
+
+        query_tokens = _tokens(query)
+        scored: list[tuple[int, dict]] = []
+        for entry in entries:
+            haystack = " ".join(
+                str(entry.get(key, ""))
+                for key in ("name", "type", "file", "signature")
+            )
+            score = len(query_tokens & _tokens(haystack))
+            if score:
+                scored.append((score, entry))
+
+        if not scored:
+            scored = [(1, entry) for entry in entries[:top_k]]
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        hits: list[dict] = []
+        for score, entry in scored[:top_k]:
+            hits.append({
+                "name": entry.get("name", ""),
+                "type": entry.get("type", ""),
+                "file": entry.get("file", ""),
+                "line": entry.get("line", 0),
+                "signature": entry.get("signature", ""),
+                "score": float(score),
+            })
+        return hits
+
+
+def _tokens(text: str) -> set[str]:
+    import re
+
+    return {
+        token.lower()
+        for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", text)
+    }

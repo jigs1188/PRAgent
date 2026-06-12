@@ -1,14 +1,7 @@
-"""
-Agentic Go Contributor – Configuration
-
-Change MODEL_NAME or LLM_PROVIDER to switch LLM backends.
-All sensitive keys are loaded from environment / .env file.
-"""
-
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+load_dotenv(dotenv_path=".env", override=False)
 
 # ────────────────────────────────────────────────────────────
 # LLM – change these two values to swap models at any time
@@ -24,14 +17,7 @@ OPENAI_API_KEY:    str = os.getenv("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 GITHUB_TOKEN:      str = os.getenv("GITHUB_TOKEN", "")          # optional – raises rate limit
 
-# ────────────────────────────────────────────────────────────
-# Pinecone vector DB
-# ────────────────────────────────────────────────────────────
-PINECONE_API_KEY:    str = os.getenv("PINECONE_API_KEY", "")
-_base_index = os.getenv("PINECONE_INDEX_NAME", "go-contributor-v2")
-PINECONE_INDEX_NAME: str = f"{_base_index}-openai" if LLM_PROVIDER == "openai" else _base_index
-PINECONE_CLOUD:      str = os.getenv("PINECONE_CLOUD", "aws")
-PINECONE_REGION:     str = os.getenv("PINECONE_REGION", "us-east-1")
+# Vector store is now fully local, no external service config needed.
 
 # Embedding model – gemini-embedding-001 is the stable Google model (3072 dims).
 # text-embedding-004 is NOT available on the v1beta API endpoint used by langchain-google-genai.

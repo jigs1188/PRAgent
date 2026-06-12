@@ -1,10 +1,3 @@
-"""
-Go source parser – extract functions, methods, structs, interfaces.
-
-Uses tree-sitter for accurate AST parsing with a regex fallback
-so the system works even if tree-sitter is not installed.
-"""
-
 from __future__ import annotations
 
 import os
@@ -28,19 +21,6 @@ except Exception:
 # ━━━━━━━━━━━━━━━━━━━━━━ public API ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def parse_go_file(filepath: str) -> list[dict]:
-    """Parse a single Go file and return code-map entries.
-
-    Each entry is a dict::
-
-        {
-            "name":      "Execute",
-            "type":      "function" | "method" | "struct" | "interface",
-            "file":      "command.go",
-            "line":      42,
-            "end_line":  78,
-            "signature": "func (c *Command) Execute() error",
-        }
-    """
     if _HAS_TREE_SITTER:
         return _parse_tree_sitter(filepath)
     return _parse_regex(filepath)

@@ -1,7 +1,3 @@
-"""
-Git operations – clone, branch, diff, apply file changes.
-"""
-
 from __future__ import annotations
 
 import os
@@ -49,11 +45,6 @@ def clone_repo(repo_url: str, dest: str | None = None) -> str:
 
 
 def create_branch(repo_path: str, branch_name: str) -> str:
-    """Create and checkout a new branch.  Returns the branch name.
-
-    If the branch already exists (from a previous run), it is reset to the
-    current HEAD of the default branch so each run starts from a clean state.
-    """
     repo = Repo(repo_path)
     if branch_name in [b.name for b in repo.branches]:
         repo.git.checkout(branch_name)
@@ -75,7 +66,6 @@ def create_branch(repo_path: str, branch_name: str) -> str:
 
 
 def get_diff(repo_path: str) -> str:
-    """Return the unified diff of all unstaged + staged changes."""
     repo = Repo(repo_path)
     repo.git.add(A=True)
     diff = repo.git.diff("--cached")
@@ -83,11 +73,6 @@ def get_diff(repo_path: str) -> str:
 
 
 def apply_file_content(repo_path: str, relative_path: str, content: str) -> None:
-    """Write *content* to *relative_path* inside the repo.
-
-    Creates any necessary parent directories.  Handles the case where
-    ``relative_path`` has no directory component (e.g. a top-level file).
-    """
     full_path = os.path.join(repo_path, relative_path)
     dir_name = os.path.dirname(full_path)
     if dir_name:
@@ -97,6 +82,5 @@ def apply_file_content(repo_path: str, relative_path: str, content: str) -> None
 
 
 def get_latest_commit_hash(repo_path: str) -> str:
-    """Return the HEAD commit short hash (used for caching)."""
     repo = Repo(repo_path)
     return repo.head.commit.hexsha[:12]

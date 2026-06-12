@@ -1,18 +1,3 @@
-"""
-Patch Generator Agent
-
-Generates **search/replace patches** (not full-file rewrites) following
-the plan.  Each patch is a targeted edit:
-
-    <<<<<<< SEARCH
-    original code to find
-    =======
-    replacement code
-    >>>>>>> REPLACE
-
-The patches are then applied to the local checkout.
-"""
-
 from __future__ import annotations
 
 import os
@@ -100,6 +85,7 @@ Generate search/replace patches to implement the plan above.
     ])
 
     raw_patches = _parse_patches(response.content)
+    applied: list[dict] = []
     apply_errors: list[str] = []
 
     for patch in raw_patches:
@@ -153,6 +139,7 @@ Generate search/replace patches to implement the plan above.
 
 _PATCH_RE = re.compile(
     r"###\s*File:\s*(?P<file>\S+)[^\r\n]*\r?\n"
+    r"(?:\s*\r?\n)*"
     r"<<<<<<< SEARCH\r?\n"
     r"(?P<search>.*?)"
     r"=======\r?\n"
@@ -163,7 +150,6 @@ _PATCH_RE = re.compile(
 
 
 def _parse_patches(text: str) -> list[dict]:
-    """Extract all search/replace patches from LLM output."""
     patches: list[dict] = []
     for m in _PATCH_RE.finditer(text):
         patches.append(
@@ -181,7 +167,6 @@ def _normalise_ws(s: str) -> str:
 
 
 def _fuzzy_replace(content: str, search: str, replace: str) -> str:
-    """Attempt a line-by-line fuzzy match when exact match fails."""
     search_lines = search.strip().splitlines()
     content_lines = content.splitlines()
 

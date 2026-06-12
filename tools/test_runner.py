@@ -1,12 +1,7 @@
-"""
-Go test / build / vet runner.
-
-All commands are executed via ``subprocess`` with a timeout.
-"""
-
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 
@@ -67,15 +62,25 @@ def _run(cmd: list[str], cwd: str) -> RunResult:
 
 
 def run_go_build(repo_path: str) -> RunResult:
-    return _run(["go", "build", "./..."], cwd=repo_path)
+    return _run([_go_cmd(), "build", "./..."], cwd=repo_path)
 
 
 def run_go_vet(repo_path: str) -> RunResult:
-    return _run(["go", "vet", "./..."], cwd=repo_path)
+    return _run([_go_cmd(), "vet", "./..."], cwd=repo_path)
 
 
 def run_go_test(repo_path: str, package: str = "./...") -> RunResult:
-    return _run(["go", "test", "-count=1", "-timeout=120s", package], cwd=repo_path)
+    return _run([_go_cmd(), "test", "-count=1", "-timeout=120s", package], cwd=repo_path)
+
+
+def _go_cmd() -> str:
+    return (
+        shutil.which("go")
+        or shutil.which("go.exe")
+        or shutil.which("go.cmd")
+        or shutil.which("go.bat")
+        or "go"
+    )
 
 
 def run_all_checks(repo_path: str) -> dict:

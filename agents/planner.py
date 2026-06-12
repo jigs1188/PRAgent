@@ -1,11 +1,3 @@
-"""
-Planner Agent
-
-Receives the issue analysis and retrieved context, then produces a
-step-by-step plan for how to fix the issue — which files to modify,
-what changes to make, and which tests to add or update.
-"""
-
 from __future__ import annotations
 
 from agents import get_llm
@@ -81,7 +73,6 @@ Produce a numbered plan to fix this issue.  For each step include:
 
 
 def _format_files(mapping: dict[str, str], max_lines: int = 200) -> str:
-    """Format a ``{path: content}`` dict into a prompt-friendly block."""
     parts: list[str] = []
     for fpath, content in mapping.items():
         lines = content.splitlines()

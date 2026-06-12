@@ -7,8 +7,6 @@ langchain-google-genai>=4.0.0
 langchain-openai>=1.0.0           # for OpenAI / gpt-4o-mini fallback
 # langchain-anthropic>=0.3.0     # uncomment for Anthropic
 
-# ── Vector store ──
-pinecone>=5.0.0
 
 # ── Repository operations ──
 gitpython>=3.1.0

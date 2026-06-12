@@ -1,11 +1,3 @@
-"""
-Repository Mapper Agent
-
-Clones the repo (if needed), builds the code map with tree-sitter,
-indexes it into Pinecone, and caches the result so repeated runs
-against the same commit are instant.
-"""
-
 from __future__ import annotations
 
 import os
@@ -17,7 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from tools.code_search import get_repo_structure, read_file_in_repo
 from tools.git_tool import clone_repo, create_branch, get_latest_commit_hash
 from tools.go_parser import build_code_map
-from vectorstore.pinecone_store import CodeVectorStore
+from vectorstore.local_store import LocalVectorStore
 
 
 def map_repository(state: dict) -> dict:
@@ -30,12 +22,14 @@ def map_repository(state: dict) -> dict:
     repo_name = repo_name.removesuffix(".git")
 
     repo_path = clone_repo(repo_name)
+
+    branch_name = f"ai/fix-issue-{issue_number}"
     create_branch(repo_path, branch_name)
 
     # ── build code map (tree-sitter or regex) ───────────────
     commit_hash = get_latest_commit_hash(repo_path)
 
-    store = CodeVectorStore()
+    store = LocalVectorStore()
     if store.is_cached(repo_name, commit_hash):
         print("  ↳ Code map already indexed (cache hit)")
         # Still need to build the in-memory code_map for later agents
@@ -47,6 +41,8 @@ def map_repository(state: dict) -> dict:
         store.save_cache(repo_name, commit_hash, count)
 
     repo_structure = get_repo_structure(repo_path)
+
+    readme = _safe_read(repo_path, "README.md")
     gomod = _safe_read(repo_path, "go.mod")
 
     llm = get_llm()
