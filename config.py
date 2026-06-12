@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=".env", override=False)
+load_dotenv(dotenv_path=".env", override=True)
 
 # ────────────────────────────────────────────────────────────
 # LLM – change these two values to swap models at any time
