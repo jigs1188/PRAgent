@@ -127,7 +127,6 @@ def main() -> None:
         print(
             "\nTips:\n"
             "  • Ensure GOOGLE_API_KEY (or OPENAI_API_KEY) is set in .env\n"
-            "  • Ensure PINECONE_API_KEY is set in .env\n"
             "  • Ensure GITHUB_TOKEN is set to avoid API rate limits\n"
             "  • Ensure Go is installed and on PATH (required for validation)\n"
         )
